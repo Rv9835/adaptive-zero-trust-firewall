@@ -1,0 +1,12 @@
+services:
+  - name: ztna-bundle
+    url: http://localhost:8181
+
+decision_logs:
+  console: true
+
+default_decision: /ztna/decision
+
+labels:
+  app: adaptive-ztna-firewall
+  environment: development

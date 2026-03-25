@@ -1,0 +1,58 @@
+# ============================================================
+# Adaptive Zero Trust Firewall (PS001)
+# Docker Compose — Development Environment
+# ============================================================
+
+version: "3.9"
+
+services:
+  # ── Proxy Gateway (Phase 1) ─────────────────────────────────
+  proxy-gateway:
+    build:
+      context: ./proxy-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - PROXY_TARGETS=/=http://test-backend:9090
+      - RATE_LIMIT_RPS=100
+      - RATE_LIMIT_BURST=200
+      - AUTH_ENABLED=false
+      - LOG_LEVEL=debug
+      - ENV=development
+    depends_on:
+      - test-backend
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── Test Backend (for Phase 1 testing) ──────────────────────
+  # Simple echo server that returns request details
+  test-backend:
+    image: hashicorp/http-echo:latest
+    command: ["-text", '{"message":"Hello from the upstream backend!","service":"test-backend","status":"ok"}']
+    ports:
+      - "9090:5678"
+    environment:
+      - PORT=9090
+    networks:
+      - ztna-network
+
+  # ── Redis (Phase 2+) ───────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+networks:
+  ztna-network:
+    driver: bridge
+
+volumes:
+  redis-data:

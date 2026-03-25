@@ -1,0 +1,22 @@
+{
+    "trust_thresholds": {
+        "allow_min": 80,
+        "challenge_min": 40,
+        "deny_max": 30
+    },
+    "iot_thresholds": {
+        "allow_min": 70,
+        "quarantine_max": 25
+    },
+    "rate_limits": {
+        "max_failed_logins": 5,
+        "lockout_duration_minutes": 30
+    },
+    "role_permissions": {
+        "admin": ["*"],
+        "engineer": ["code-repo", "ci-cd", "internal-docs", "dev-tools"],
+        "sales": ["crm", "email", "internal-docs"],
+        "viewer": ["internal-docs"]
+    },
+    "fail_mode": "closed"
+}

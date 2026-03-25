@@ -1,0 +1,119 @@
+# ============================================================
+# Adaptive Zero Trust Firewall (PS001)
+# Docker Compose — Full Stack
+# ============================================================
+
+version: "3.9"
+
+services:
+  # ── Proxy Gateway ───────────────────────────────────────────
+  proxy-gateway:
+    build:
+      context: ./proxy-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - PROXY_TARGETS=/=http://test-backend:5678
+      - RATE_LIMIT_RPS=100
+      - RATE_LIMIT_BURST=200
+      - AUTH_ENABLED=true
+      - AUTH_SERVICE_URL=http://auth-service:8081
+      - ML_ENGINE_URL=http://ml-engine:8082
+      - POLICY_ENGINE_URL=http://policy-engine:8181
+      - LOG_LEVEL=info
+      - ENV=development
+    depends_on:
+      - auth-service
+      - ml-engine
+      - policy-engine
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── Auth Service ────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - AUTH_PORT=8081
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-production-ZTNA2026!}
+      - MONGODB_URI=${MONGODB_URI:-mongodb+srv://chamandb:chaman123@firewall.qvbiaop.mongodb.net/?appName=firewall}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-ztna-firewall}
+      - ENV=development
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── ML Engine ───────────────────────────────────────────────
+  ml-engine:
+    build:
+      context: ./ml-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    volumes:
+      - ml-models:/app/models
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── Policy Engine (OPA) ────────────────────────────────────
+  policy-engine:
+    build:
+      context: ./policy-engine
+      dockerfile: Dockerfile
+    ports:
+      - "8181:8181"
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── MongoDB (Local Dev) ────────────────────────────────────
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - ztna-network
+    restart: unless-stopped
+
+  # ── Test Backend ───────────────────────────────────────────
+  test-backend:
+    image: hashicorp/http-echo:latest
+    command:
+      - "-text"
+      - '{"message":"Hello from upstream backend!","service":"test-backend","status":"ok"}'
+    ports:
+      - "5678:5678"
+    networks:
+      - ztna-network
+
+networks:
+  ztna-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+  ml-models:
+  mongo-data:
