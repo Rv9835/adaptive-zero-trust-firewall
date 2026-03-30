@@ -18,7 +18,7 @@ Client → [Proxy Gateway :8080]
 - Go 1.22+
 - Python 3.11+
 - Docker & Docker Compose
-- MongoDB Atlas account (or local MongoDB).
+- MongoDB Atlas account (or local MongoDB)
 
 ### Option 1: Docker Compose (Recommended)
 
